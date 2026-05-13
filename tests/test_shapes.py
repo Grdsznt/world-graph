@@ -9,6 +9,7 @@ import os
 
 import torch
 import numpy as np
+from torch_geometric.data import Data
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
