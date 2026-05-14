@@ -1,26 +1,11 @@
-"""GNN Transition Model with FiLM conditioning — spec-compliant variant.
-
-This implements T_G(s_t, a_t) → ŝ_{t+1} per the GWM survey taxonomy:
-- GATv2 message passing with edge-type awareness
-- FiLM (Feature-wise Linear Modulation) for action injection
-- Residual prediction: ŝ_{t+1} = s_t + Δ_GNN(s_t, a_t)
-- Predicted feature matrix X̂_{t+1} + adjacency logits Â_{t+1}
-- Topological Consistency Loss (prevents cross-room teleportation)
+"""
+GNN Transition Model with FiLM conditioning.
+- GATv2 message passing
+- FiLM (Feature-wise Linear Modulation)
+- Residual prediction
+- Predicted feature matrix
+- Topological Consistency Loss
 - Latent Reconstruction Loss (MSE on SigLIP/DINOv2 features)
-
-Differences from the GPS-based TransitionModel:
-┌─────────────────────┬──────────────────────────┬──────────────────────────────┐
-│ Feature             │ GPS TransitionModel      │ GNNTransitionModel (this)    │
-├─────────────────────┼──────────────────────────┼──────────────────────────────┤
-│ Encoder             │ GPS (GATv2 + Transformer)│ Pure GATv2 (faster)          │
-│ Action conditioning │ Cross-attention           │ FiLM modulation              │
-│ Global attention    │ Full O(N²) Transformer    │ None (local msg passing)     │
-│ Node features       │ 1216-d (DINOv2+pos+bbox) │ 515-d (SigLIP 512 + pos 3)  │
-│ Topological loss    │ Not implemented           │ ✅ Implemented               │
-│ Identity test       │ Not guaranteed             │ ✅ Null action → identity    │
-│ HeteroData input    │ Homogeneous only          │ ✅ Parses Hydra JSON layers  │
-│ Complexity          │ ~150M params              │ ~30-50M params (lighter)     │
-└─────────────────────┴──────────────────────────┴──────────────────────────────┘
 """
 
 from dataclasses import dataclass
@@ -579,7 +564,12 @@ class GNNTransitionLoss(nn.Module):
         feat_loss = F.mse_loss(pred_siglip, true_siglip)
         losses["feat_mse"] = feat_loss
 
-        total = self.lambda_feat * feat_loss
+        pred_pos = output.predicted_x[:n, self.siglip_dim:self.siglip_dim+3]
+        true_pos = target.x[:n, self.siglip_dim:self.siglip_dim+3]
+        pos_loss = F.mse_loss(pred_pos, true_pos)
+        losses["pos_mse"] = pos_loss
+
+        total = self.lambda_feat * feat_loss + 5.0 * pos_loss
 
         # ── Full feature MSE (including position) ──
         full_mse = F.mse_loss(output.predicted_x[:n], target.x[:n])

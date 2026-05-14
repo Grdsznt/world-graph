@@ -190,7 +190,6 @@ def generate_training_pairs(num_samples=200, seed=42):
 
     for i in range(num_samples):
         action_type = i % 4  # cycle through actions
-
         if action_type == 0:
             # NULL: nothing changes
             s_t = make_kitchen_graph(

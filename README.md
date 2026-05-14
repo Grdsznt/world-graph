@@ -6,6 +6,20 @@ This repository is optimized to run on consumer hardware (e.g., RTX 3090, 24GB V
 
 ---
 
+gnn_transition.py vs transition.py:
+┌─────────────────────┬──────────────────────────┬──────────────────────────────┐
+│ Feature             │ GPS TransitionModel      │ GNNTransitionModel (this)    │
+├─────────────────────┼──────────────────────────┼──────────────────────────────┤
+│ Encoder             │ GPS (GATv2 + Transformer)│ Pure GATv2 (faster)          │
+│ Action conditioning │ Cross-attention           │ FiLM modulation              │
+│ Global attention    │ Full O(N²) Transformer    │ None (local msg passing)     │
+│ Node features       │ 1216-d (DINOv2+pos+bbox) │ 515-d (SigLIP 512 + pos 3)  │
+│ Topological loss    │ Not implemented           │ ✅ Implemented               │
+│ Identity test       │ Not guaranteed             │ ✅ Null action → identity    │
+│ HeteroData input    │ Homogeneous only          │ ✅ Parses Hydra JSON layers  │
+│ Complexity          │ ~150M params              │ ~30-50M params (lighter)     │
+└─────────────────────┴──────────────────────────┴──────────────────────────────┘
+
 ## 🚀 Quick Start & Installation
 
 ### 1. Environment Setup
@@ -43,6 +57,8 @@ To see the model learn deterministic dynamics (pick up, put down, search) on syn
 ```bash
 # On a CUDA machine (e.g., RTX 3090)
 CUDA_VISIBLE_DEVICES=0 python scripts/demo_train.py
+
+CUDA_VISIBLE_DEVICES=0 python scripts/demo_eval.py --checkpoint checkpoints/...
 
 # On Apple Silicon (MPS) or CPU
 python scripts/demo_train.py
