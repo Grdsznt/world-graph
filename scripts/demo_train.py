@@ -487,7 +487,7 @@ def main():
     # VRAM usage report
     if torch.cuda.is_available():
         mem_used = torch.cuda.max_memory_allocated() / 1024**2
-        mem_total = torch.cuda.get_device_properties(0).total_mem / 1024**2
+        mem_total = torch.cuda.get_device_properties(0).total_memory / 1024**2
         print(f"\n{'='*60}")
         print(f"VRAM Report")
         print(f"  Peak usage:  {mem_used:.0f} MB")
